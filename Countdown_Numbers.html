@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Numbers Game</title>
+    <style>
+        :root {
+            --color-primary: #0088cc;
+            --color-primary-hover: #0073aa;
+            --color-bg: #f5f5f5;
+            --color-surface: #ffffff;
+            --color-text: #222;
+            --color-text-secondary: #666;
+            --color-border: #ddd;
+            --color-large: #e74c3c;
+            --color-small: #3498db;
+            --color-selected: #f39c12;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--color-text);
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--color-text-secondary);
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 1em;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--color-text-secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-text);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--color-primary);
+            padding-bottom: 10px;
+        }
+
+        .tiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 1.8em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            user-select: none;
+            position: relative;
+        }
+
+        .tile.hidden {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .tile.hidden:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .tile.hidden::after {
+            content: '?';
+            font-size: 1.5em;
+        }
+
+        .tile.revealed {
+            background: var(--color-surface);
+            color: var(--color-text);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 3px solid var(--color-border);
+        }
+
+        .tile.large {
+            border-color: var(--color-large);
+            background: #fff4f1 !important;
+            color: var(--color-large) !important;
+        }
+
+        .tile.small {
+            border-color: var(--color-small);
+            background: #f0f8ff !important;
+            color: var(--color-small) !important;
+        }
+
+        .tile.selected {
+            background: var(--color-selected) !important;
+            color: white !important;
+            border-color: #d68910 !important;
+            box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.3);
+        }
+
+        .game-state {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: var(--color-text-secondary);
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .targets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .target-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+        }
+
+        .target-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .target-number {
+            font-size: 2.2em;
+            font-weight: 700;
+        }
+
+        .solution-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .solution-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .solution-input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .solution-input-group input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+        }
+
+        .solution-input-group button {
+            padding: 10px 20px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .solution-input-group button:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .score {
+            font-size: 0.8em;
+            color: var(--color-text-secondary);
+            margin-top: 5px;
+        }
+
+        .score.success {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .score.partial {
+            color: #f39c12;
+            font-weight: 600;
+        }
+
+        .reset-button {
+            display: block;
+            margin: 30px auto 0;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        .legend-color.large {
+            background: #fff4f1;
+            border-color: var(--color-large);
+        }
+
+        .legend-color.small {
+            background: #f0f8ff;
+            border-color: var(--color-small);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .tiles-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .game-state,
+            .solution-area {
+                grid-template-columns: 1fr;
+            }
+
+            .targets-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Countdown Numbers</h1>
+        <p class="subtitle">Pick 6 numbers and solve 5 target problems in 30 seconds each!</p>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="sampleBtn">Quick Sample</button>
+            <button class="btn btn-primary" id="startManualBtn">Manual Selection</button>
+            <button class="btn btn-secondary" id="resetBtn" style="display: none;">Reset Game</button>
+        </div>
+
+        <div id="gameContainer" style="display: none;">
+            <div class="game-state">
+                <div class="stat-box">
+                    <div class="stat-label">Numbers Selected</div>
+                    <div class="stat-value" id="selectedCount">0 / 6</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Your Numbers</div>
+                <div class="tiles-grid" id="tilesContainer"></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color large"></div>
+                        <span>Large (25, 50, 75, 100)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color small"></div>
+                        <span>Small (1-10, appears twice)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Targets to Solve</div>
+                <div class="targets-grid" id="targetsContainer"></div>
+                <div id="targetSolutionPanel" style="display: none; margin-top: 20px;">
+                    <button class="btn btn-primary" id="showTargetSolutionBtn">Show Solution</button>
+                    <div id="targetSolutionDisplay" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Show Solutions</div>
+                <button class="btn btn-primary" id="showSolutionsBtn" style="margin-bottom: 20px;">Find Solutions</button>
+                <div id="solutionsContainer" style="display: none;">
+                    <div id="solutionsList"></div>
+                </div>
+                <p id="solutionMessage" style="color: #666; font-style: italic; display: none;"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const LARGE_NUMBERS = [25, 50, 75, 100];
+        const SMALL_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        let gameState = {
+            selectedNumbers: [],
+            targets: [],
+            solutions: [],
+            solvedCount: 0,
+            isManualMode: false,
+            largeCount: 0
+        };
+
+        function generateRandomTarget() {
+            return Math.floor(Math.random() * 900) + 100; // 100-999
+        }
+
+        function generateTargets() {
+            const targets = [];
+            for (let i = 0; i < 5; i++) {
+                targets.push(generateRandomTarget());
+            }
+            return targets;
+        }
+
+        function generateQuickSample() {
+            const largeCount = Math.floor(Math.random() * 3); // 0-2 large numbers
+            const smallCount = 6 - largeCount;
+            const selected = [];
+
+            // Randomly pick large numbers
+            const shuffledLarge = [...LARGE_NUMBERS].sort(() => Math.random() - 0.5);
+            for (let i = 0; i < largeCount; i++) {
+                selected.push(shuffledLarge[i]);
+            }
+
+            // Randomly pick small numbers (allowing duplicates since we have 2 of each)
+            const smallPool = [];
+            for (let num of SMALL_NUMBERS) {
+                smallPool.push(num, num); // 2 of each
+            }
+            const shuffledSmall = smallPool.sort(() => Math.random() - 0.5);
+            for (let i = 0; i < smallCount; i++) {
+                selected.push(shuffledSmall[i]);
+            }
+
+            return { numbers: selected, largeCount };
+        }
+
+        function startQuickSample() {
+            const sample = generateQuickSample();
+            gameState.selectedNumbers = sample.numbers.sort((a, b) => b - a);
+            gameState.largeCount = sample.largeCount;
+            gameState.isManualMode = false;
+            gameState.targets = generateTargets();
+            gameState.solutions = new Array(5).fill('');
+            gameState.solvedCount = 0;
+            renderGame();
+        }
+
+        function startManualSelection() {
+            gameState.selectedNumbers = [];
+            gameState.largeCount = 0;
+            gameState.isManualMode = true;
+            gameState.targets = [];
+            gameState.solutions = [];
+            gameState.solvedCount = 0;
+            renderManualSelection();
+        }
+
+        function renderManualSelection() {
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('sampleBtn').style.display = 'none';
+            document.getElementById('startManualBtn').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'inline-block';
+
+            const container = document.querySelector('.controls');
+            const existing = document.getElementById('manualSelectionUI');
+            if (existing) existing.remove();
+
+            const ui = document.createElement('div');
+            ui.id = 'manualSelectionUI';
+            ui.innerHTML = `
+                <div style="text-align: center; margin-top: 20px;">
+                    <p style="font-size: 1.1em; color: #666; margin-bottom: 20px;">
+                        Click on tiles to select 6 numbers
+                    </p>
+                    <div class="tiles-grid" id="manualTilesContainer"></div>
+                    <button class="btn btn-primary" id="confirmSelectionBtn" style="margin-top: 20px;" disabled>
+                        Confirm Selection (${gameState.selectedNumbers.length}/6)
+                    </button>
+                </div>
+            `;
+            container.after(ui);
+
+            const allTiles = [];
+            for (let num of LARGE_NUMBERS) {
+                allTiles.push({ value: num, isLarge: true });
+            }
+            for (let num of SMALL_NUMBERS) {
+                allTiles.push({ value: num, isLarge: false });
+                allTiles.push({ value: num, isLarge: false });
+            }
+
+            const tilesContainer = document.getElementById('manualTilesContainer');
+            tilesContainer.innerHTML = '';
+
+            allTiles.forEach((tile, index) => {
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile hidden';
+                tileEl.dataset.index = index;
+                tileEl.dataset.value = tile.value;
+                tileEl.dataset.isLarge = tile.isLarge;
+
+                tileEl.addEventListener('click', function() {
+                    if (gameState.selectedNumbers.length < 6) {
+                        gameState.selectedNumbers.push(tile.value);
+                        tileEl.classList.remove('hidden');
+                        tileEl.classList.add('revealed', tile.isLarge ? 'large' : 'small');
+                        tileEl.textContent = tile.value;
+                        tileEl.style.pointerEvents = 'none';
+                    }
+                    updateConfirmButton();
+                });
+
+                tilesContainer.appendChild(tileEl);
+            });
+
+            const confirmBtn = document.getElementById('confirmSelectionBtn');
+            confirmBtn.addEventListener('click', function() {
+                gameState.largeCount = gameState.selectedNumbers.filter(n => LARGE_NUMBERS.includes(n)).length;
+                gameState.selectedNumbers.sort((a, b) => b - a);
+                gameState.targets = generateTargets();
+                gameState.solutions = new Array(5).fill('');
+                gameState.solvedCount = 0;
+                ui.remove();
+                renderGame();
+            });
+        }
+
+        function updateConfirmButton() {
+            const btn = document.getElementById('confirmSelectionBtn');
+            const count = gameState.selectedNumbers.length;
+            btn.textContent = `Confirm Selection (${count}/6)`;
+            btn.disabled = count !== 6;
+        }
+
+        function renderGame() {
+            document.getElementById('gameContainer').style.display = 'block';
+            document.getElementById('sampleBtn').style.display = 'none';
+            document.getElementById('startManualBtn').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'inline-block';
+
+            // Render tiles
+            const tilesContainer = document.getElementById('tilesContainer');
+            tilesContainer.innerHTML = '';
+
+            gameState.selectedNumbers.forEach((num) => {
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile revealed';
+                const isLarge = LARGE_NUMBERS.includes(num);
+                tileEl.classList.add(isLarge ? 'large' : 'small');
+                tileEl.textContent = num;
+                tilesContainer.appendChild(tileEl);
+            });
+
+            // Update counts
+            document.getElementById('selectedCount').textContent = `6 / 6`;
+
+            // Render targets
+            const targetsContainer = document.getElementById('targetsContainer');
+            targetsContainer.innerHTML = '';
+            let selectedTargetIdx = null;
+
+            gameState.targets.forEach((target, idx) => {
+                const card = document.createElement('div');
+                card.className = 'target-card';
+                card.style.cursor = 'pointer';
+                card.innerHTML = `
+                    <div class="target-label">Target ${idx + 1}</div>
+                    <div class="target-number">${target}</div>
+                `;
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.target-card').forEach(c => {
+                        c.style.opacity = '0.6';
+                        c.style.transform = 'scale(0.95)';
+                    });
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1)';
+                    selectedTargetIdx = idx;
+                    document.getElementById('targetSolutionPanel').style.display = 'block';
+                });
+                targetsContainer.appendChild(card);
+            });
+
+            const showBtn = document.getElementById('showTargetSolutionBtn');
+            showBtn.addEventListener('click', () => {
+                if (selectedTargetIdx !== null) {
+                    displaySolutions(selectedTargetIdx);
+                }
+            });
+        }
+
+        class Value {
+            constructor(number) {
+                this.number = number;
+                this.lhs = null;
+                this.rhs = null;
+                this.operator = null;
+            }
+
+            combine(rhs, operator) {
+                let n;
+                switch (operator) {
+                    case '+':
+                        n = this.number + rhs.number;
+                        break;
+                    case '×':
+                        n = this.number * rhs.number;
+                        break;
+                    case '-':
+                        n = this.number - rhs.number;
+                        if (n < 1) return null;
+                        break;
+                    case '÷':
+                        if (rhs.number === 0 || !Number.isInteger(n = this.number / rhs.number)) return null;
+                        break;
+                    default:
+                        return null;
+                }
+                const v = new Value(n);
+                v.lhs = this;
+                v.rhs = rhs;
+                v.operator = operator;
+                return v;
+            }
+
+            toString() {
+                if (!this.lhs) return String(this.number);
+                return `(${this.lhs.toString()} ${this.operator} ${this.rhs.toString()})`;
+            }
+        }
+
+        function findSolutions(numbers, target) {
+            const solutions = [];
+            const operators = ['+', '-', '×', '÷'];
+
+            function solve(values) {
+                for (let val of values) {
+                    if (val.number === target) {
+                        solutions.push(val);
+                    }
+                }
+
+                if (values.length === 1) return;
+
+                for (let i = 0; i < values.length; i++) {
+                    for (let j = 0; j < values.length; j++) {
+                        if (i === j) continue;
+                        for (let op of operators) {
+                            const larger = values[i].number >= values[j].number ? values[i] : values[j];
+                            const smaller = values[i].number < values[j].number ? values[i] : values[j];
+                            
+                            const result = larger.combine(smaller, op);
+                            if (result) {
+                                const remaining = values.filter((_, idx) => idx !== i && idx !== j);
+                                solve([...remaining, result]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            const initialValues = numbers.map(n => new Value(n));
+            solve(initialValues);
+            return solutions;
+        }
+
+        function displaySolutions(targetIdx) {
+            const target = gameState.targets[targetIdx];
+            const solutions = findSolutions(gameState.selectedNumbers, target);
+
+            const displayDiv = document.getElementById('targetSolutionDisplay');
+
+            if (solutions.length === 0) {
+                displayDiv.innerHTML = `
+                    <p style="color: #e74c3c; font-style: italic;">
+                        No exact solution found for target ${target}. Try approximating!
+                    </p>
+                `;
+            } else {
+                const uniqueSolutions = new Map();
+                for (let sol of solutions) {
+                    const key = sol.toString();
+                    if (!uniqueSolutions.has(key)) {
+                        uniqueSolutions.set(key, sol);
+                    }
+                }
+
+                let html = `
+                    <h4 style="margin-top: 0; margin-bottom: 10px; color: #222;">Solutions for ${target}:</h4>
+                    <p style="color: #666; margin-bottom: 15px; font-size: 0.95em;">
+                        Found ${uniqueSolutions.size} solution${uniqueSolutions.size !== 1 ? 's' : ''}
+                    </p>
+                `;
+
+                Array.from(uniqueSolutions.values()).slice(0, 5).forEach((sol) => {
+                    html += `
+                        <div style="background-color: #f0f8ff; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #3498db;">
+                            <div style="font-family: monospace; color: #222;">
+                                ${sol.toString()}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (uniqueSolutions.size > 5) {
+                    html += `
+                        <p style="color: #666; font-size: 0.9em; margin-top: 10px;">
+                            ... and ${uniqueSolutions.size - 5} more solutions
+                        </p>
+                    `;
+                }
+
+                displayDiv.innerHTML = html;
+            }
+        }
+
+        function resetGame() {
+            gameState = {
+                selectedNumbers: [],
+                targets: [],
+                solutions: [],
+                solvedCount: 0,
+                isManualMode: false,
+                largeCount: 0
+            };
+            document.getElementById('gameContainer').style.display = 'none';
+            document.getElementById('sampleBtn').style.display = 'inline-block';
+            document.getElementById('startManualBtn').style.display = 'inline-block';
+            document.getElementById('resetBtn').style.display = 'none';
+            const manualUI = document.getElementById('manualSelectionUI');
+            if (manualUI) manualUI.remove();
+        }
+
+        document.getElementById('sampleBtn').addEventListener('click', startQuickSample);
+        document.getElementById('startManualBtn').addEventListener('click', startManualSelection);
+        document.getElementById('resetBtn').addEventListener('click', resetGame);
+    </script>
+</body>
+</html>
