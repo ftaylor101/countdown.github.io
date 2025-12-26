@@ -404,6 +404,30 @@
                 </div>
                 <p id="solutionMessage" style="color: #666; font-style: italic; display: none;"></p>
             </div>
+
+            <div class="section">
+                <div class="section-title">Scratchpad</div>
+
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start;">
+                    <input id="scratchExpr" type="text"
+                           placeholder="e.g. 5 + 4 * 10 (evaluates left-to-right)"
+                           style="padding: 10px; border: 2px solid var(--color-border); border-radius: 6px; font-size: 1em; font-weight: 600;" />
+
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-primary" id="scratchEvalBtn">Evaluate</button>
+                        <button class="btn btn-secondary" id="scratchClearBtn">Clear</button>
+                    </div>
+                </div>
+
+                <div id="scratchResult"
+                     style="margin-top: 12px; padding: 12px; background:#f9f9f9; border-radius: 6px; border-left: 4px solid var(--color-primary); display:none;">
+                </div>
+
+                <div id="scratchSteps"
+                     style="margin-top: 10px; color:#666; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.95em;">
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -735,6 +759,110 @@
             }
         }
 
+                function tokenizeLeftToRight(expr) {
+            // supports integers, + - * x × / ÷ and parentheses are NOT supported by design
+            // (Countdown scratch working is usually stepwise, so explicit parentheses aren't required)
+            const cleaned = expr
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/x/g, '×')
+                .replace(/\*/g, '×')
+                .replace(/\//g, '÷');
+
+            if (!cleaned) return [];
+
+            // Split by spaces if present; otherwise do a simple scan.
+            // Recommended UX: user enters space-separated tokens, but this scanner is forgiving.
+            const tokens = [];
+            let i = 0;
+
+            while (i < cleaned.length) {
+                const ch = cleaned[i];
+
+                if (ch === ' ') { i++; continue; }
+
+                // operator
+                if (ch === '+' || ch === '-' || ch === '×' || ch === '÷') {
+                    tokens.push(ch);
+                    i++;
+                    continue;
+                }
+
+                // number (allow leading minus as unary only at start or after operator)
+                if (/\d/.test(ch) || (ch === '-' && (tokens.length === 0 || ['+','-','×','÷'].includes(tokens[tokens.length - 1])))) {
+                    let j = i + 1;
+                    while (j < cleaned.length && /\d/.test(cleaned[j])) j++;
+                    const numStr = cleaned.slice(i, j);
+                    if (!/^-?\d+$/.test(numStr)) throw new Error(`Bad number: ${numStr}`);
+                    tokens.push(Number(numStr));
+                    i = j;
+                    continue;
+                }
+
+                throw new Error(`Unexpected character: "${ch}"`);
+            }
+
+            return tokens;
+        }
+
+        function evalLeftToRight(expr) {
+            const tokens = tokenizeLeftToRight(expr);
+            if (tokens.length === 0) throw new Error('Enter an expression.');
+
+            // Expect alternating number, (op, number)...
+            if (typeof tokens[0] !== 'number') throw new Error('Expression must start with a number.');
+
+            let acc = tokens[0];
+            const steps = [`${acc}`];
+
+            for (let i = 1; i < tokens.length; i += 2) {
+                const op = tokens[i];
+                const rhs = tokens[i + 1];
+
+                if (!op || typeof op !== 'string') throw new Error('Expected an operator.');
+                if (typeof rhs !== 'number') throw new Error('Expected a number after the operator.');
+
+                let next;
+                switch (op) {
+                    case '+': next = acc + rhs; break;
+                    case '-': next = acc - rhs; break;
+                    case '×': next = acc * rhs; break;
+                    case '÷':
+                        if (rhs === 0) throw new Error('Division by zero.');
+                        // Countdown-style: keep to integers only (optional). Comment out if you want decimals.
+                        if (!Number.isInteger(acc / rhs)) throw new Error(`Non-integer division: ${acc} ÷ ${rhs}`);
+                        next = acc / rhs;
+                        break;
+                    default:
+                        throw new Error(`Unknown operator: ${op}`);
+                }
+
+                steps.push(`${acc} ${op} ${rhs} = ${next}`);
+                acc = next;
+            }
+
+            return { value: acc, steps };
+        }
+
+        function renderScratchResult(ok, payload) {
+            const resultDiv = document.getElementById('scratchResult');
+            const stepsDiv = document.getElementById('scratchSteps');
+
+            resultDiv.style.display = 'block';
+
+            if (!ok) {
+                resultDiv.style.borderLeftColor = '#e74c3c';
+                resultDiv.innerHTML = `<div style="font-weight:700; color:#e74c3c;">Error</div><div>${payload}</div>`;
+                stepsDiv.textContent = '';
+                return;
+            }
+
+            resultDiv.style.borderLeftColor = 'var(--color-primary)';
+            resultDiv.innerHTML = `<div style="font-weight:700;">Result</div><div style="font-size:1.6em; font-weight:800; color: var(--color-primary);">${payload.value}</div>`;
+            stepsDiv.textContent = payload.steps.join('\n');
+        }
+
+
         function resetGame() {
             gameState = {
                 selectedNumbers: [],
@@ -755,6 +883,27 @@
         document.getElementById('sampleBtn').addEventListener('click', startQuickSample);
         document.getElementById('startManualBtn').addEventListener('click', startManualSelection);
         document.getElementById('resetBtn').addEventListener('click', resetGame);
+
+        document.getElementById('scratchEvalBtn').addEventListener('click', () => {
+            const expr = document.getElementById('scratchExpr').value;
+            try {
+                const out = evalLeftToRight(expr);
+                renderScratchResult(true, out);
+            } catch (e) {
+                renderScratchResult(false, e.message || String(e));
+            }
+        });
+
+        document.getElementById('scratchClearBtn').addEventListener('click', () => {
+            document.getElementById('scratchExpr').value = '';
+            document.getElementById('scratchResult').style.display = 'none';
+            document.getElementById('scratchSteps').textContent = '';
+        });
+
+        document.getElementById('scratchExpr').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('scratchEvalBtn').click();
+        });
+
     </script>
 </body>
 </html>
