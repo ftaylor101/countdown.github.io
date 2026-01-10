@@ -518,7 +518,14 @@
                     <p style="font-size: 1.1em; color: #666; margin-bottom: 20px;">
                         Click on tiles to select 6 numbers
                     </p>
-                    <div class="tiles-grid" id="manualTilesContainer"></div>
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="font-size: 1em; color: #666; margin-bottom: 10px;">Large Numbers</h3>
+                        <div class="tiles-grid" id="largeTilesContainer" style="grid-template-columns: repeat(4, 1fr);"></div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1em; color: #666; margin-bottom: 10px;">Small Numbers</h3>
+                        <div class="tiles-grid" id="smallTilesContainer"></div>
+                    </div>
                     <button class="btn btn-primary" id="confirmSelectionBtn" style="margin-top: 20px;" disabled>
                         Confirm Selection (${gameState.selectedNumbers.length}/6)
                     </button>
@@ -526,22 +533,26 @@
             `;
             container.after(ui);
 
-            const allTiles = [];
-            for (let num of LARGE_NUMBERS) {
-                allTiles.push({ value: num, isLarge: true });
-            }
+            // Create and shuffle large tiles
+            const largeTiles = LARGE_NUMBERS.map(num => ({ value: num, isLarge: true }));
+            largeTiles.sort(() => Math.random() - 0.5);
+
+            // Create and shuffle small tiles
+            const smallTiles = [];
             for (let num of SMALL_NUMBERS) {
-                allTiles.push({ value: num, isLarge: false });
-                allTiles.push({ value: num, isLarge: false });
+                smallTiles.push({ value: num, isLarge: false });
+                smallTiles.push({ value: num, isLarge: false });
             }
+            smallTiles.sort(() => Math.random() - 0.5);
 
-            const tilesContainer = document.getElementById('manualTilesContainer');
-            tilesContainer.innerHTML = '';
+            const largeTilesContainer = document.getElementById('largeTilesContainer');
+            const smallTilesContainer = document.getElementById('smallTilesContainer');
 
-            allTiles.forEach((tile, index) => {
+            // Render large tiles
+            largeTiles.forEach((tile, index) => {
                 const tileEl = document.createElement('div');
                 tileEl.className = 'tile hidden';
-                tileEl.dataset.index = index;
+                tileEl.dataset.index = 'large-' + index;
                 tileEl.dataset.value = tile.value;
                 tileEl.dataset.isLarge = tile.isLarge;
 
@@ -549,14 +560,36 @@
                     if (gameState.selectedNumbers.length < 6) {
                         gameState.selectedNumbers.push(tile.value);
                         tileEl.classList.remove('hidden');
-                        tileEl.classList.add('revealed', tile.isLarge ? 'large' : 'small');
+                        tileEl.classList.add('revealed', 'large');
                         tileEl.textContent = tile.value;
                         tileEl.style.pointerEvents = 'none';
                     }
                     updateConfirmButton();
                 });
 
-                tilesContainer.appendChild(tileEl);
+                largeTilesContainer.appendChild(tileEl);
+            });
+
+            // Render small tiles
+            smallTiles.forEach((tile, index) => {
+                const tileEl = document.createElement('div');
+                tileEl.className = 'tile hidden';
+                tileEl.dataset.index = 'small-' + index;
+                tileEl.dataset.value = tile.value;
+                tileEl.dataset.isLarge = tile.isLarge;
+
+                tileEl.addEventListener('click', function() {
+                    if (gameState.selectedNumbers.length < 6) {
+                        gameState.selectedNumbers.push(tile.value);
+                        tileEl.classList.remove('hidden');
+                        tileEl.classList.add('revealed', 'small');
+                        tileEl.textContent = tile.value;
+                        tileEl.style.pointerEvents = 'none';
+                    }
+                    updateConfirmButton();
+                });
+
+                smallTilesContainer.appendChild(tileEl);
             });
 
             const confirmBtn = document.getElementById('confirmSelectionBtn');
